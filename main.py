@@ -379,11 +379,11 @@ try:
                         times = get_top_fastest_for_challenge(challenge_id)
                         print(times)
                         if times:
-                            times = '\r'.join([f"{x[0]}: {x[1]} seconds" for x in times])
+                            times = '\n'.join([f"{x[0]}: {x[1]} seconds" for x in times])
                         else:
                             times = "No saved times -- please connect to save times"
                         if all_answers:
-                            msg = f"-- {all_answers[0]}\r{('Alt solutions: ' + ', '.join(all_answers[1:]) if len(all_answers) >= 2 and all_answers[1] != '' else '')}\r\rBest Times:\r{times}"
+                            msg = f"-- {all_answers[0]}\n{('Alt solutions: ' + ', '.join(all_answers[1:]) if len(all_answers) >= 2 and all_answers[1] != '' else '')}\n\nBest Times:\n{times}"
                         else:
                             print("answers being weird pls fix")
                         
