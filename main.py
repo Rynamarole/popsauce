@@ -13,6 +13,8 @@ import random
 import re
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
+
 
 # Replace this with your specific room code
 ROOM_CODE = "rwuc"
@@ -21,6 +23,9 @@ Talk = True
 
 # Database setup
 DB_FILE = "challenge_data.db"
+
+def remove_non_bmp(text):
+    return re.sub(r'[^\u0000-\uFFFF]', '', text)
 
 def initialize_database():
     conn = sqlite3.connect(DB_FILE)
@@ -55,7 +60,6 @@ def initialize_database():
             ''')
     conn.commit()
     conn.close()
-
 
 def get_hash(prompt: str, image: str = "") -> str:
     combined = prompt + image
@@ -100,7 +104,6 @@ return JSON.stringify(foundPlayers);"""
 def execute_js():
     return driver.execute_script(js)
 
-
 initialize_database()
 
 # Start WebDriver
@@ -110,7 +113,6 @@ options = webdriver.ChromeOptions()
 driver = webdriver.Chrome(options=options)
 # name = ["mnemosyne", "selene", "hyperion", "asteria", "eudaimonia", "calliope", "calypso"]
 name = ["Ryn Bot pls dont ban"]
-
 
 def join_room(driver_name, username):
     time.sleep(5)
@@ -251,7 +253,11 @@ def jump_to_chat():
 def send(element: WebElement, text: str):
     while text:
         if len(text) <= 300:
-            element.send_keys(text + Keys.ENTER)
+            for pt in text.split('\n'):
+                element.send_keys(pt)
+                ActionChains(driver).key_down(Keys.SHIFT).key_down(Keys.ENTER).key_up(Keys.SHIFT).key_up(
+                    Keys.ENTER).perform()
+            element.send_keys(Keys.ENTER)
             break
 
         # Find the last newline before 300 chars
@@ -260,7 +266,12 @@ def send(element: WebElement, text: str):
             split_index = 300  # If no newline, split at 300 chars
 
         part, text = text[:split_index], text[split_index:].lstrip()
-        element.send_keys(part + Keys.ENTER)
+        # element.send_keys(part + Keys.ENTER)
+        for pt in part.split('\n'):
+            element.send_keys(pt)
+            ActionChains(driver).key_down(Keys.SHIFT).key_down(Keys.ENTER).key_up(Keys.SHIFT).key_up(
+                Keys.ENTER).perform()
+        element.send_keys(Keys.ENTER)
 
 try:
     # Open the room URL
@@ -349,10 +360,11 @@ try:
                             save_solution(challenge_id, fallback_answer)
                         # if not scoreboard_entries:
                         #     scoreboard_entries = driver.find_elements(By.CSS_SELECTOR, "scoreboard right darkScrollbar div.entry")
-                        
+                        learned = []
                         for player in player_answers:
                             # print(entry.get_attribute('outerHTML'))
-                            username = player["username"]
+                            username = remove_non_bmp(player["username"])
+                            if not username: username = " "
                             elapsed_time = player["elapsedTime"] / 1000
                             guess = player["guess"]
                             auth = player["authId"]
@@ -367,23 +379,27 @@ try:
                                     # print(f"learned solution {cleaned_guess} from {username}!")
                                     if save_solution(challenge_id, cleaned_guess):
                                         if Talk:
-                                            send(jump_to_chat(), f'Solution {cleaned_guess} was unknown to me! Thank you!')
-                                            driver.switch_to.frame(iframe)
+                                            learned.append(cleaned_guess)
                                     
                                 if auth:
                                     # print("inserting")
                                     insert_game_performance(auth, username, challenge_id, elapsed_time)
+                        
+                        if Talk and learned != []:
+                            send(jump_to_chat(), f'Solution(s) {", ".join(learned)} were unknown to me! Thank you for contributing!')
+                            driver.switch_to.frame(iframe)
+                            learned = []
                                     
                         all_answers = get_answers(challenge_id)
                         print(all_answers)
                         times = get_top_fastest_for_challenge(challenge_id)
                         print(times)
                         if times:
-                            times = '\n'.join([f"{x[0]}: {x[1]} seconds" for x in times])
+                            times = '\n'.join([f"{remove_non_bmp(x[0])}: {x[1]} seconds" for x in times])
                         else:
-                            times = "No saved times -- please connect to save times"
+                            times = "No saved times. (Times by non-connected players are not saved.)"
                         if all_answers:
-                            msg = f"-- {all_answers[0]}\n{('Alt solutions: ' + ', '.join(all_answers[1:]) if len(all_answers) >= 2 and all_answers[1] != '' else '')}\n\nBest Times:\n{times}"
+                            msg = f"--\nAnswer: {all_answers[0]}\n{('Alt answers: ' + ', '.join(sorted(all_answers[1:], key=len)) if len(all_answers) >= 2 and all_answers[1] != '' else '')}\n\nBest Times:\n{times}"
                         else:
                             print("answers being weird pls fix")
                         
