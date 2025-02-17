@@ -17,7 +17,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 
 
 # Replace this with your specific room code
-ROOM_CODE = "rwuc"
+ROOM_CODE = "ykjx"
 URL = f"https://jklm.fun/{ROOM_CODE}"
 Talk = True
 
@@ -249,15 +249,30 @@ def jump_to_chat():
     driver.switch_to.default_content()
     input_box = driver.find_element(By.CSS_SELECTOR, "div.input textarea")
     return input_box
-    
-def send(element: WebElement, text: str):
+
+def js_send(elem: WebElement, text: str):
+    driver.execute_script("arguments[0].value = arguments[1];", elem, text)
+    # driver.execute_script("arguments[0].value = ''", elem)
+    """for x in text.split("\n"):
+        action = ActionChains(driver)
+        action.send_keys(x)
+        #driver.execute_script("arguments[0].value += arguments[1];", elem, x)
+        # elem.send_keys(Keys.SHIFT, Keys.ENTER)
+        action.key_down(Keys.SHIFT).send_keys("\n")
+        action.key_up(Keys.SHIFT).perform()"""
+    elem.send_keys(Keys.ENTER)
+
+def send(element: WebElement, txt: str):
+    text = txt.replace("\n", "\n")
     while text:
         if len(text) <= 300:
-            for pt in text.split('\n'):
-                element.send_keys(pt)
-                ActionChains(driver).key_down(Keys.SHIFT).key_down(Keys.ENTER).key_up(Keys.SHIFT).key_up(
-                    Keys.ENTER).perform()
-            element.send_keys(Keys.ENTER)
+            """for pt in text.split('\n'):
+                element.send_keys(pt + "\ue00a")"""
+            #    # action.key_down(Keys.SHIFT).send_keys(Keys.ENTER).key_up(Keys.SHIFT)
+            #    """ActionChains(driver).key_down(Keys.SHIFT).key_down(Keys.ENTER).key_up(Keys.SHIFT).key_up(
+            #        Keys.ENTER).perform()"""
+            # element.send_keys(Keys.ENTER)
+            js_send(element, text)
             break
 
         # Find the last newline before 300 chars
@@ -267,11 +282,12 @@ def send(element: WebElement, text: str):
 
         part, text = text[:split_index], text[split_index:].lstrip()
         # element.send_keys(part + Keys.ENTER)
-        for pt in part.split('\n'):
-            element.send_keys(pt)
-            ActionChains(driver).key_down(Keys.SHIFT).key_down(Keys.ENTER).key_up(Keys.SHIFT).key_up(
-                Keys.ENTER).perform()
-        element.send_keys(Keys.ENTER)
+        js_send(element, text)
+        """for pt in part.split('\n'):
+            element.send_keys(pt + "\ue00a")"""
+        #    """ActionChains(driver).key_down(Keys.SHIFT).key_down(Keys.ENTER).key_up(Keys.SHIFT).key_up(
+        #        Keys.ENTER).perform()"""
+        # element.send_keys(Keys.ENTER)
 
 try:
     # Open the room URL
@@ -300,6 +316,7 @@ try:
 
     while True:
         try:
+            
             # Wait for the challenge div to appear
             challenge_div = WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div.challenge"))
@@ -392,20 +409,21 @@ try:
                                     
                         all_answers = get_answers(challenge_id)
                         print(all_answers)
-                        times = get_top_fastest_for_challenge(challenge_id)
+                        times = get_top_fastest_for_challenge(challenge_id, 3)
                         print(times)
                         if times:
                             times = '\n'.join([f"{remove_non_bmp(x[0])}: {x[1]} seconds" for x in times])
                         else:
                             times = "No saved times. (Times by non-connected players are not saved.)"
                         if all_answers:
-                            msg = f"--\nAnswer: {all_answers[0]}\n{('Alt answers: ' + ', '.join(sorted(all_answers[1:], key=len)) if len(all_answers) >= 2 and all_answers[1] != '' else '')}\n\nBest Times:\n{times}"
+                            msg = f"--\nAnswer: {all_answers[0]}\n{('Alt answers: ' + ', '.join(sorted(all_answers[1:], key=len)) if len(all_answers) >= 2 and all_answers[1] != '' else '')}"
                         else:
                             print("answers being weird pls fix")
                         
                         # print(get_answers(challenge_id))
                         if Talk:
                             send(jump_to_chat(), msg)
+                            send(jump_to_chat(), f"--\nBest Times:\n{times}")
                             driver.switch_to.frame(iframe)
                             
 
@@ -419,6 +437,7 @@ try:
 
         except TimeoutException:
             print("Timeout while waiting for challenge div. Retrying...")
+            driver.switch_to.frame(iframe)
         except StaleElementReferenceException:
             print("Stale element encountered. Retrying...")
         except selenium.common.exceptions.JavascriptException:
