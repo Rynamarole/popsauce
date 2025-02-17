@@ -17,9 +17,9 @@ from selenium.webdriver.common.action_chains import ActionChains
 
 
 # Replace this with your specific room code
-ROOM_CODE = "uexb"
+ROOM_CODE = "xxxx"
 URL = f"https://jklm.fun/{ROOM_CODE}"
-Talk = False
+Talk = True
 
 # Database setup
 DB_FILE = "challenge_data.db"
