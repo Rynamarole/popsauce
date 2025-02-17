@@ -17,9 +17,9 @@ from selenium.webdriver.common.action_chains import ActionChains
 
 
 # Replace this with your specific room code
-ROOM_CODE = "ykjx"
+ROOM_CODE = "uexb"
 URL = f"https://jklm.fun/{ROOM_CODE}"
-Talk = True
+Talk = False
 
 # Database setup
 DB_FILE = "challenge_data.db"
@@ -79,7 +79,6 @@ def get_img():
     } catch (e) {
         return null;  // Handle errors gracefully
     }""")
-        # print(img[:10] if img else "anti-boop")
         return img
     except selenium.common.exceptions.JavascriptException:
         return None
@@ -112,7 +111,7 @@ options = webdriver.ChromeOptions()
 # options.add_argument("--disable-gpu")
 driver = webdriver.Chrome(options=options)
 # name = ["mnemosyne", "selene", "hyperion", "asteria", "eudaimonia", "calliope", "calypso"]
-name = ["Ryn Bot pls dont ban"]
+name = ["rynana"]
 
 def join_room(driver_name, username):
     time.sleep(5)
@@ -207,7 +206,6 @@ def insert_game_performance(AuthId: str, Username:str, challenge_id: str, elapse
                         SET elapsed_time = ? 
                         WHERE AuthId = ? AND challenge_id = ?;
                     ''', (elapsed_time, AuthId, challenge_id))
-            # print(f"Updated time for player {AuthId} on challenge {challenge_id}: {elapsed_time} ms")
     else:
         # If no time exists, insert the new time
         with conn:
@@ -215,7 +213,6 @@ def insert_game_performance(AuthId: str, Username:str, challenge_id: str, elapse
                     INSERT INTO game_performance (AuthId, challenge_id, elapsed_time) 
                     VALUES (?, ?, ?);
                 ''', (AuthId, challenge_id, elapsed_time))
-        # print(f"Inserted new time for player {AuthId} on challenge {challenge_id}: {elapsed_time} ms")
     conn.commit()
     
 def get_top_fastest_for_challenge(challenge_id: str, limit: int = 10):
@@ -233,8 +230,6 @@ def get_top_fastest_for_challenge(challenge_id: str, limit: int = 10):
     return cur.fetchall()
     
 def get_answers(hash_value :str) -> list:
-    # , prompt: str, image: str = ""
-    # hash_value = get_hash(prompt, image)
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("SELECT answer FROM answers WHERE hash = ?", (hash_value,))
@@ -252,26 +247,12 @@ def jump_to_chat():
 
 def js_send(elem: WebElement, text: str):
     driver.execute_script("arguments[0].value = arguments[1];", elem, text)
-    # driver.execute_script("arguments[0].value = ''", elem)
-    """for x in text.split("\n"):
-        action = ActionChains(driver)
-        action.send_keys(x)
-        #driver.execute_script("arguments[0].value += arguments[1];", elem, x)
-        # elem.send_keys(Keys.SHIFT, Keys.ENTER)
-        action.key_down(Keys.SHIFT).send_keys("\n")
-        action.key_up(Keys.SHIFT).perform()"""
     elem.send_keys(Keys.ENTER)
 
 def send(element: WebElement, txt: str):
     text = txt.replace("\n", "\n")
     while text:
         if len(text) <= 300:
-            """for pt in text.split('\n'):
-                element.send_keys(pt + "\ue00a")"""
-            #    # action.key_down(Keys.SHIFT).send_keys(Keys.ENTER).key_up(Keys.SHIFT)
-            #    """ActionChains(driver).key_down(Keys.SHIFT).key_down(Keys.ENTER).key_up(Keys.SHIFT).key_up(
-            #        Keys.ENTER).perform()"""
-            # element.send_keys(Keys.ENTER)
             js_send(element, text)
             break
 
@@ -281,13 +262,7 @@ def send(element: WebElement, txt: str):
             split_index = 300  # If no newline, split at 300 chars
 
         part, text = text[:split_index], text[split_index:].lstrip()
-        # element.send_keys(part + Keys.ENTER)
         js_send(element, text)
-        """for pt in part.split('\n'):
-            element.send_keys(pt + "\ue00a")"""
-        #    """ActionChains(driver).key_down(Keys.SHIFT).key_down(Keys.ENTER).key_up(Keys.SHIFT).key_up(
-        #        Keys.ENTER).perform()"""
-        # element.send_keys(Keys.ENTER)
 
 try:
     # Open the room URL
@@ -339,11 +314,9 @@ try:
             if image_url and image_url.startswith("url("):
                 image_url = image_url[5:-2]"""
             image_url = get_img()
-            # print("img: " +  image_url[:10] if image_url else "No image")
 
             # Print changes only if they occur and the element is visible
             if prompt != last_prompt or text != last_text or (image_url != last_image_url and image_url is not None):
-                # print("--- Update Detected ---")
 
                 content = text if text else image_url if image_url else None
 
@@ -369,17 +342,13 @@ try:
                     player_answers = json.loads(execute_js())
 
                     if fallback_answer:
-                        # print("--- Answer Detected ---")
                         print(f"Answer: {fallback_answer}")
                         time.sleep(0.3)
                         scoreboard_entries = driver.find_elements(By.CSS_SELECTOR, "div.scoreboard.lower div.entry")
                         if challenge_id:
                             save_solution(challenge_id, fallback_answer)
-                        # if not scoreboard_entries:
-                        #     scoreboard_entries = driver.find_elements(By.CSS_SELECTOR, "scoreboard right darkScrollbar div.entry")
                         learned = []
                         for player in player_answers:
-                            # print(entry.get_attribute('outerHTML'))
                             username = remove_non_bmp(player["username"])
                             if not username: username = " "
                             elapsed_time = player["elapsedTime"] / 1000
@@ -393,13 +362,11 @@ try:
                                 cleaned_answer = clean_text(fallback_answer)
 
                                 if cleaned_guess and cleaned_guess != cleaned_answer.lower():
-                                    # print(f"learned solution {cleaned_guess} from {username}!")
                                     if save_solution(challenge_id, cleaned_guess):
                                         if Talk:
                                             learned.append(cleaned_guess)
                                     
                                 if auth:
-                                    # print("inserting")
                                     insert_game_performance(auth, username, challenge_id, elapsed_time)
                         
                         if Talk and learned != []:
@@ -419,8 +386,7 @@ try:
                             msg = f"--\nAnswer: {all_answers[0]}\n{('Alt answers: ' + ', '.join(sorted(all_answers[1:], key=len)) if len(all_answers) >= 2 and all_answers[1] != '' else '')}"
                         else:
                             print("answers being weird pls fix")
-                        
-                        # print(get_answers(challenge_id))
+                            
                         if Talk:
                             send(jump_to_chat(), msg)
                             send(jump_to_chat(), f"--\nBest Times:\n{times}")
